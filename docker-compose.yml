@@ -74,8 +74,8 @@ services:
     network_mode: host
     hostname: plex
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - VERSION=docker
       - UMASK_SET=022 #optional
       - PLEX_CLAIM=${PLEXTCLAIM} #optional
@@ -93,8 +93,8 @@ services:
     depends_on:
         - traefik
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - TRANSMISSION_WEB_HOME=/transmission-web-control/ #optional Specify an alternative UI options are /combustion-release/, /transmission-web-control/, and /kettu/ .
       - USER=${TRANSMISSIONUSER} #optional
@@ -147,8 +147,8 @@ services:
     depends_on:
         - traefik
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - LETSENCRYPT_HOST=netdata.${EXTERNAL_DOMAIN}
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
@@ -177,8 +177,8 @@ services:
     container_name: duplicati
     hostname: duplicati
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - CLI_ARGS= #optional
     volumes:
@@ -199,8 +199,8 @@ services:
     container_name: duckdns
     hostname: duckdns
     environment:
-      - PUID=1000 #optional
-      - PGID=1000 #optional
+      - PUID=${PUID} #optional
+      - PGID=${PGID} #optional
       - TZ=$${TZ}
       - SUBDOMAINS=${DUCKDNS_SUBDOMAINS}
       - TOKEN=${DUCKDNS_TOKEN}
@@ -214,8 +214,8 @@ services:
     container_name: nextcloud
     hostname: nextcloud
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
     volumes:
       - ${CONFIGDIR}/nextcloud:/config
@@ -234,8 +234,8 @@ services:
     container_name: resilio-sync
     hostname: resilio-sync
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - UMASK_SET=022
     volumes:
@@ -258,8 +258,8 @@ services:
     networks:
       - traefik_proxy
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - BASE_URL=/ombi #optional
     volumes:
@@ -291,8 +291,8 @@ services:
     container_name: sonarr
     hostname: sonarr
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - UMASK_SET=022 #optional
     volumes:
@@ -308,8 +308,8 @@ services:
     container_name: radarr
     hostname: radarr
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - UMASK_SET=022 #optional
     volumes:
@@ -325,8 +325,8 @@ services:
     container_name: jackett
     hostname: jackett
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - RUN_OPTS=run options here #optional
     volumes:
