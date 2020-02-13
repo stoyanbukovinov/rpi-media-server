@@ -1,0 +1,366 @@
+---
+version: "3.7"
+services:
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    hostname: traefik
+    domainname: alpha.${EXTERNAL_DOMAIN}
+    command: 
+        - "--providers.docker=true"
+        - "--entrypoints.web.address=:80"
+        - "--entrypoints.websecure.address=443"
+    networks:
+        - default
+        - traefik_proxy
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "${CONFIGDIR}/traefik:/etc/traefik"
+      - "${CONFIGDIR}/traefik/shared:/shared"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=traefik"
+      #- "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.api.rule=Host(`traefik.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.routers.traefik.entrypoints=web"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRUSER}:${TRPASS}"
+      - "traefik.http.routers.traefik-secure.entrypoints=web-secure"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.options=default"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=http"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+
+  whoami:
+    image: "containous/whoami"
+    container_name: "simple-service"
+    network_mode: 'traefik_proxy'
+    depends_on:
+        - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=whoami"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+      - "traefik.http.middlewares.whoami-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.whoami-auth.basicauth.usersfile=${USERS_FILE}"
+      - "traefik.http.routers.whoami-secure.entrypoints=web-secure"
+      - "traefik.http.routers.whoami-secure.rule=Host(`whoami.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.whoami-secure.middlewares=whoami-auth"
+      - "traefik.http.routers.whoami-secure.tls=true"
+      - "traefik.http.routers.whoami-secure.tls.options=default"
+      - "traefik.http.routers.whoami-secure.tls.certresolver=http"
+      - "traefik.http.routers.whoami-secure.service=api@internal"
+
+  plex:
+    container_name: plex
+    image: linuxserver/plex
+    container_name: plex
+    network_mode: host
+    hostname: plex
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - VERSION=docker
+      - UMASK_SET=022 #optional
+      - PLEX_CLAIM=${PLEXTCLAIM} #optional
+    volumes:
+      - ${CONFIGDIR}/plex:/config
+      - ${PLEXDATA}/movies:/movies
+      - ${PLEXDATA}/tv:/tv
+    restart: unless-stopped
+
+  transmission:
+    image: linuxserver/transmission
+    container_name: transmission
+    hostname: transmission
+    network_mode: 'traefik_proxy'
+    depends_on:
+        - traefik
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - TRANSMISSION_WEB_HOME=/transmission-web-control/ #optional Specify an alternative UI options are /combustion-release/, /transmission-web-control/, and /kettu/ .
+      - USER=${TRANSMISSIONUSER} #optional
+      - PASS=${TRANSMISSIONPASS} #optional
+    volumes:
+      - ${CONFIGDIR}/transmission:/config
+      - ${DOWNLOADS}:/downloads
+      - ${DOWNLOADS}/watch:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.transmission.rule=Host(`transmission.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.transmission.entrypoints=web"
+      - "traefik.port=9091"
+
+  portainer:
+    image: portainer/portainer
+    command: -H unix:///var/run/docker.sock
+    container_name: portainer
+    hostname: portainer
+    network_mode: 'traefik_proxy'
+    depends_on:
+        - traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    ports:
+      - 9000:9000
+      - 8000:8000
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=portainer"
+      - "traefik.frontend.rule=Host:portainer.${EXTERNAL_DOMAIN}" 
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.portainer.entrypoints=web"
+      - "traefik.port=9000"
+      - "traefik.docker.network=traefik_proxy"
+
+  netdata:
+    image: acrelle/rpi-netdata
+    container_name: netdata
+    hostname: netdata
+    restart: always
+    network_mode: 'traefik_proxy'
+    depends_on:
+        - traefik
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - LETSENCRYPT_HOST=netdata.${EXTERNAL_DOMAIN}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    ports:
+      - 19999:19999
+    volumes:
+      - ${CONFIGDIR}/netdata:/etc/netdata/override:rw 
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=netdata"
+      - "traefik.port=19999"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.routers.netdata.rule=Host(`netdata.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.middlewares.netdata-auth.basicauth.users=${TRUSER}:${TRPASS}"
+      - "traefik.http.routers.netdata-secure.middlewares=traefik-auth"
+
+  duplicati:
+    image: linuxserver/duplicati
+    container_name: duplicati
+    hostname: duplicati
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - CLI_ARGS= #optional
+    volumes:
+      - ${CONFIGDIR}/duplicati:/config
+      - ${BACKUPS}:/backups
+      - ${CONFIGDIR}:/source
+    ports:
+      - 8200:8200
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.duplicati.rule=Host(`duplicati.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.duplicati.entrypoints=web"
+      - "traefik.port=8200"
+
+  duckdns:
+    image: linuxserver/duckdns
+    container_name: duckdns
+    hostname: duckdns
+    environment:
+      - PUID=1000 #optional
+      - PGID=1000 #optional
+      - TZ=$${TZ}
+      - SUBDOMAINS=${DUCKDNS_SUBDOMAINS}
+      - TOKEN=${DUCKDNS_TOKEN}
+      - LOG_FILE=false #optional
+    volumes:
+      - ${CONFIGDIR}/duckdns:/config #optional
+    restart: unless-stopped
+
+  nextcloud:
+    image: linuxserver/nextcloud
+    container_name: nextcloud
+    hostname: nextcloud
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIGDIR}/nextcloud:/config
+      - ${CLOUDDATA}/nextcloud:/data
+    ports:
+      - 10443:443
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.nextcloud.entrypoints=web"
+      - "traefik.port=443"
+
+  resilio-sync:
+    image: linuxserver/resilio-sync
+    container_name: resilio-sync
+    hostname: resilio-sync
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - UMASK_SET=022
+    volumes:
+      - ${CONFIGDIR}/resilio:/config
+      - ${CLOUDDATA}/resilio/downloads:/downloads
+      - ${CLOUDDATA}/resilio/sync:/sync
+    ports:
+      - 8888:8888
+      - 55555:55555
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.resilio.rule=Host(`resilio.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.resilio.entrypoints=web"
+      - "traefik.port=8888"
+
+  ombi:
+    image: linuxserver/ombi
+    container_name: ombi
+    networks:
+      - traefik_proxy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - BASE_URL=/ombi #optional
+    volumes:
+      - ${CONFIGDIR}/ombi:/config
+    ports:
+      - 3579:3579
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ombi.rule=Host(`ombi.${EXTERNAL_DOMAIN}`)"
+      - "traefik.port=3579"
+      - "traefik.docker.network=traefik_proxy"
+     # - "traefik.http.middlewares.ombi-https-redirect.redirectscheme.scheme=https"
+     # - "traefik.http.routers.ombi.middlewares=ombi-https-redirect"
+      - "traefik.http.middlewares.harden.headers.stsPreload=true"
+      - "traefik.http.middlewares.harden.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.harden.headers.stsIncludeSubdomains=true"
+      # - "traefik.http.routers.ombi-secure.middlewares=harden"
+      # - "traefik.http.routers.ombi-secure.entrypoints=web-secure"
+      # - "traefik.http.routers.ombi-secure.rule=Host(`ombi.${EXTERNAL_DOMAIN}`)"
+      # - "traefik.http.routers.ombi-secure.tls=true"
+      # - "traefik.http.routers.ombi-secure.tls.certresolver=http"
+      # - "traefik.http.routers.ombi-secure.tls.options=default"
+      # - "traefik.http.routers.ombi-secure.service=ombi"
+      # - "traefik.http.services.ombi.loadbalancer.server.port=3579"
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    hostname: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - UMASK_SET=022 #optional
+    volumes:
+      - ${CONFIGDIR}/sonarr:/config
+      - ${PLEXDATA}/tv:/tv
+      - ${DOWNLOADS}:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    hostname: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - UMASK_SET=022 #optional
+    volumes:
+      - ${CONFIGDIR}/radarr:/config
+      - ${PLEXDATA}/movies:/movies
+      - ${DOWNLOADS}:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  jackett:
+    image: linuxserver/jackett
+    container_name: jackett
+    hostname: jackett
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - RUN_OPTS=run options here #optional
+    volumes:
+      - ${CONFIGDIR}/jackett:/config
+      - ${DOWNLOADS}:/downloads
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+
+  watchtower:
+      image: containrrr/watchtower
+      container_name: watchtower
+      restart: unless-stopped
+      environment:
+          - TZ=${TZ}
+          # - WATCHTOWER_NOTIFICATIONS=email
+          # - WATCHTOWER_NOTIFICATION_EMAIL_FROM=${SMTP_FROM}
+          # - WATCHTOWER_NOTIFICATION_EMAIL_TO=${WATCHTOWER_EMAIL}
+          # - WATCHTOWER_NOTIFICATION_EMAIL_SERVER=${SMTP_SERVER}
+          # - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=${SMTP_PORT}
+          # - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=${SMTP_USER}
+          # - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=${SMTP_PASS}
+      network_mode: 'bridge'
+      volumes:
+          - '/var/run/docker.sock:/var/run/docker.sock'
+          - '/etc/ssl/certs:/etc/ssl/certs'
+      command: portainer --schedule @midnight --cleanup
+
+volumes:
+  portainer_data:
+
+networks:
+  traefik_proxy:
+    external:
+      name: traefik_proxy
+  default:
+    driver: bridge
