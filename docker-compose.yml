@@ -264,6 +264,7 @@
         - radarr
         - sonarr
         - jackett
+        - transmission
       restart: always
       environment:
         - PUID=${PUID}
