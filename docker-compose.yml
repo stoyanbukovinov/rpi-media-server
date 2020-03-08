@@ -51,6 +51,7 @@ services:
     network_mode: 'traefik_proxy'
     depends_on:
         - traefik
+    restart: always
     labels:
       - "traefik.enable=true"
       - "traefik.backend=whoami"
@@ -73,6 +74,7 @@ services:
     container_name: plex
     network_mode: host
     hostname: plex
+    restart: always
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -83,7 +85,6 @@ services:
       - ${CONFIGDIR}/plex:/config
       - ${PLEXDATA}/movies:/movies
       - ${PLEXDATA}/tv:/tv
-    restart: unless-stopped
 
   transmission:
     image: linuxserver/transmission
@@ -92,6 +93,7 @@ services:
     network_mode: 'traefik_proxy'
     depends_on:
         - traefik
+    restart: always
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -107,7 +109,6 @@ services:
       - 9091:9091
       - 51413:51413
       - 51413:51413/udp
-    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.transmission.rule=Host(`transmission.${EXTERNAL_DOMAIN}`)"
@@ -122,13 +123,13 @@ services:
     network_mode: 'traefik_proxy'
     depends_on:
         - traefik
+    restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
     ports:
       - 9000:9000
       - 8000:8000
-    restart: always
     labels:
       - "traefik.enable=true"
       - "traefik.backend=portainer"
@@ -142,10 +143,10 @@ services:
     image: acrelle/rpi-netdata
     container_name: netdata
     hostname: netdata
-    restart: always
     network_mode: 'traefik_proxy'
     depends_on:
         - traefik
+    restart: always
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -176,6 +177,7 @@ services:
     image: linuxserver/duplicati
     container_name: duplicati
     hostname: duplicati
+    restart: unless-stopped
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -187,7 +189,6 @@ services:
       - ${CONFIGDIR}:/source
     ports:
       - 8200:8200
-    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.duplicati.rule=Host(`duplicati.${EXTERNAL_DOMAIN}`)"
@@ -198,6 +199,7 @@ services:
     image: linuxserver/duckdns
     container_name: duckdns
     hostname: duckdns
+    restart: unless-stopped
     environment:
       - PUID=${PUID} #optional
       - PGID=${PGID} #optional
@@ -207,12 +209,12 @@ services:
       - LOG_FILE=false #optional
     volumes:
       - ${CONFIGDIR}/duckdns:/config #optional
-    restart: unless-stopped
 
   nextcloud:
     image: linuxserver/nextcloud
     container_name: nextcloud
     hostname: nextcloud
+    restart: unless-stopped
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -222,7 +224,6 @@ services:
       - ${CLOUDDATA}/nextcloud:/data
     ports:
       - 10443:443
-    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.${EXTERNAL_DOMAIN}`)"
@@ -233,6 +234,7 @@ services:
     image: linuxserver/resilio-sync
     container_name: resilio-sync
     hostname: resilio-sync
+    restart: unless-stopped
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -245,7 +247,6 @@ services:
     ports:
       - 8888:8888
       - 55555:55555
-    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.resilio.rule=Host(`resilio.${EXTERNAL_DOMAIN}`)"
@@ -257,6 +258,14 @@ services:
     container_name: ombi
     networks:
       - traefik_proxy
+    depends_on: 
+      - traefik
+      - ombi
+      - plex
+      - radarr
+      - sonarr
+      - jackett
+    restart: always
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -266,7 +275,6 @@ services:
       - ${CONFIGDIR}/ombi:/config
     ports:
       - 3579:3579
-    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ombi.rule=Host(`ombi.${EXTERNAL_DOMAIN}`)"
@@ -290,6 +298,7 @@ services:
     image: linuxserver/sonarr
     container_name: sonarr
     hostname: sonarr
+    restart: unless-stopped
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -301,12 +310,12 @@ services:
       - ${DOWNLOADS}:/downloads
     ports:
       - 8989:8989
-    restart: unless-stopped
 
   radarr:
     image: linuxserver/radarr
     container_name: radarr
     hostname: radarr
+    restart: unless-stopped
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -318,12 +327,12 @@ services:
       - ${DOWNLOADS}:/downloads
     ports:
       - 7878:7878
-    restart: unless-stopped
 
   jackett:
     image: linuxserver/jackett
     container_name: jackett
     hostname: jackett
+    restart: unless-stopped
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -334,11 +343,11 @@ services:
       - ${DOWNLOADS}:/downloads
     ports:
       - 9117:9117
-    restart: unless-stopped
 
   watchtower:
       image: containrrr/watchtower
       container_name: watchtower
+      depends_on: portainer
       restart: unless-stopped
       environment:
           - TZ=${TZ}
