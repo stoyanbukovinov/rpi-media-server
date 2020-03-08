@@ -260,7 +260,6 @@
         - traefik_proxy
       depends_on: 
         - traefik
-        - ombi
         - plex
         - radarr
         - sonarr
