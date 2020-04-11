@@ -31,12 +31,12 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.backend=traefik"
-      #- "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
+      # - "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.api.rule=Host(`traefik.${EXTERNAL_DOMAIN}`)"
       - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
       - "traefik.docker.network=traefik_proxy"
       - "traefik.http.routers.traefik.entrypoints=web"
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRUSER}:${TRPASS}"
+     # - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRUSER}:${TRPASS}"
       - "traefik.http.routers.traefik-secure.entrypoints=web-secure"
       - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${EXTERNAL_DOMAIN}`)"
       - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
@@ -77,8 +77,8 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - VERSION=docker
-      - UMASK_SET=022 #optional
-      - PLEX_CLAIM=${PLEXTCLAIM} #optional
+      - UMASK_SET=022 # optional
+      - PLEX_CLAIM=${PLEXTCLAIM} # optional
     volumes:
       - ${CONFIGDIR}/plex:/config
       - ${PLEXDATA}/movies:/movies
@@ -96,9 +96,9 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - TRANSMISSION_WEB_HOME=/transmission-web-control/ #optional Specify an alternative UI options are /combustion-release/, /transmission-web-control/, and /kettu/ .
-      - USER=${TRANSMISSIONUSER} #optional
-      - PASS=${TRANSMISSIONPASS} #optional
+      - TRANSMISSION_WEB_HOME=/transmission-web-control/ # optional Specify an alternative UI options are /combustion-release/, /transmission-web-control/, and /kettu/ .
+      - USER=${TRANSMISSIONUSER} # optional
+      - PASS=${TRANSMISSIONPASS} # optional
     volumes:
       - ${CONFIGDIR}/transmission:/config
       - ${DOWNLOADS}:/downloads
@@ -124,7 +124,7 @@ services:
         - traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
+      - ${CONFIGDIR}/portainer:/data
     ports:
       - 9000:9000
       - 8000:8000
@@ -180,7 +180,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - CLI_ARGS= #optional
+      - CLI_ARGS= # optional
     volumes:
       - ${CONFIGDIR}/duplicati:/config
       - ${BACKUPS}:/backups
@@ -199,14 +199,14 @@ services:
     container_name: duckdns
     hostname: duckdns
     environment:
-      - PUID=${PUID} #optional
-      - PGID=${PGID} #optional
+      - PUID=${PUID} # optional
+      - PGID=${PGID} # optional
       - TZ=$${TZ}
       - SUBDOMAINS=${DUCKDNS_SUBDOMAINS}
       - TOKEN=${DUCKDNS_TOKEN}
-      - LOG_FILE=false #optional
+      - LOG_FILE=false # optional
     volumes:
-      - ${CONFIGDIR}/duckdns:/config #optional
+      - ${CONFIGDIR}/duckdns:/config # optional
     restart: unless-stopped
 
   nextcloud:
@@ -261,7 +261,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - BASE_URL=/ombi #optional
+      - BASE_URL=/ombi # optional
     volumes:
       - ${CONFIGDIR}/ombi:/config
     ports:
@@ -294,7 +294,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - UMASK_SET=022 #optional
+      - UMASK_SET=022 # optional
     volumes:
       - ${CONFIGDIR}/sonarr:/config
       - ${PLEXDATA}/tv:/tv
@@ -311,7 +311,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - UMASK_SET=022 #optional
+      - UMASK_SET=022 # optional
     volumes:
       - ${CONFIGDIR}/radarr:/config
       - ${PLEXDATA}/movies:/movies
@@ -328,7 +328,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - RUN_OPTS=run options here #optional
+      - RUN_OPTS=run options here # optional
     volumes:
       - ${CONFIGDIR}/jackett:/config
       - ${DOWNLOADS}:/downloads
@@ -355,8 +355,76 @@ services:
           - '/etc/ssl/certs:/etc/ssl/certs'
       command: portainer --schedule @midnight --cleanup
 
-volumes:
-  portainer_data:
+  htpcmanager:
+    image: linuxserver/htpcmanager
+    container_name: htpcmanager
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIGDIR}/htpcmanager:/config
+    ports:
+      - 8085:8085
+    restart: unless-stopped
+
+  medusa:
+    image: linuxserver/medusa
+    container_name: medusa
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIGDIR}/medusa:/config
+      - ${DOWNLOADS}:/downloads
+      - ${PLEXDATA}/tv:/tv
+    ports:
+      - 8081:8081
+    restart: unless-stopped
+
+  smokeping:
+    image: linuxserver/smokeping
+    container_name: smokeping
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIGDIR}/smokeping:/config
+      - ${CONFIGDIR}/smokeping:/data
+    ports:
+      - 12345:80
+    restart: unless-stopped
+
+  organizr:
+    image: linuxserver/organizr
+    container_name: organizr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIGDIR}/organizr:/config
+    ports:
+      - 9983:80
+    restart: unless-stopped
+
+  organizr:
+    image: organizrtools/organizr-v2:armhf
+    container_name: organizr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIGDIR}/organizrv2:/config
+    ports:
+      - 9984:80
+    restart: unless-stopped
+
+# volumes:
+#   portainer_data:
 
 networks:
   traefik_proxy:
