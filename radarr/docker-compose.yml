@@ -1,0 +1,17 @@
+---
+version: "2.1"
+services:
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - TZ=${TZ} # Specify a timezone to use
+      - PUID=${PUID} # User ID to run as
+      - PGID=${PGID} # Group ID to run as
+    volumes:
+      - ${CONFIGDIR}/radarr:/config
+      - ${PLEXDATA}:/movies #optional
+      # - ${PLEXDATA}:/downloads #optional
+    ports:
+      - 7878:7878
+    restart: unless-stopped

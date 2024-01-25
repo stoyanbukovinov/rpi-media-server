@@ -1,0 +1,16 @@
+---
+version: "2.1"
+services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:latest
+    container_name: nextcloud
+    environment:
+      - TZ=${TZ} # Specify a timezone to use
+      - PUID=${PUID} # User ID to run as
+      - PGID=${PGID} # Group ID to run as
+    volumes:
+      - ${CONFIGDIR}/nextcloud:/config
+      - ${CLOUDDATA}:/data
+    ports:
+      - 10443:443
+    restart: unless-stopped

@@ -1,0 +1,18 @@
+---
+version: "2.1"
+services:
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    environment:
+      - PUID=${PUID} # User ID to run as
+      - PGID=${PGID} # Group ID to run as
+      - TZ=${TZ}
+      # - DOCKER_MODS=linuxserver/calibre-web:calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+    volumes:
+      - ${CONFIGDIR}/calibre-web:/config
+      - ${BOOKS}:/books
+    ports:
+      - 8083:8083
+    restart: unless-stopped

@@ -1,0 +1,17 @@
+version: '3.7'
+
+services:
+  google-ddns:
+    image: cwmr/google-domains-ddns
+    container_name: "google-ddns"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - USERNAME=${DDNSusername}
+      - PASSWORD=${DDNSpassword}
+      - HOSTNAME=${DDNShostname}
+      - INTERVAL=${DDNSinterval}
+    volumes:
+      - /etc/localtime:/etc/localtime
+    restart: always

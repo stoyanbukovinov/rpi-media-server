@@ -1,0 +1,25 @@
+version: '3.3'
+
+services:
+  whoami:
+    image: "containous/whoami"
+    container_name: "simple-service"
+    network_mode: 'traefik_proxy'
+    depends_on:
+        - traefik
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=whoami"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+      - "traefik.http.middlewares.whoami-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.whoami-auth.basicauth.usersfile=${USERS_FILE}"
+      - "traefik.http.routers.whoami-secure.entrypoints=web-secure"
+      - "traefik.http.routers.whoami-secure.rule=Host(`whoami.${EXTERNAL_DOMAIN}`)"
+      - "traefik.http.routers.whoami-secure.middlewares=whoami-auth"
+      - "traefik.http.routers.whoami-secure.tls=true"
+      - "traefik.http.routers.whoami-secure.tls.options=default"
+      - "traefik.http.routers.whoami-secure.tls.certresolver=http"
+      - "traefik.http.routers.whoami-secure.service=api@internal"

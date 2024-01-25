@@ -1,0 +1,16 @@
+---
+version: "2.1"
+services:
+  babybuddy:
+    image: lscr.io/linuxserver/babybuddy:latest
+    container_name: babybuddy
+    environment:
+      - TZ=${TZ} # Specify a timezone to use
+      - PUID=${PUID} # User ID to run as
+      - PGID=${PGID} # Group ID to run as
+      - CSRF_TRUSTED_ORIGINS=http://127.0.0.1:8000,https://babybuddy.domain.com
+    volumes:
+      - ${CONFIGDIR}/babybuddy:/config
+    ports:
+      - 8000:8000
+    restart: unless-stopped

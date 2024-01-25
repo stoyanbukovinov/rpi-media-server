@@ -1,0 +1,16 @@
+---
+version: "2.1"
+services:
+  ombi:
+    image: lscr.io/linuxserver/ombi:latest
+    container_name: ombi
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - BASE_URL=/ombi #optional
+    volumes:
+      - ${CONFIGDIR}/ombi:/config
+    ports:
+      - 3579:3579

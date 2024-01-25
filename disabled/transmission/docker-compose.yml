@@ -1,0 +1,23 @@
+---
+version: "2.1"
+services:
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    hostname: transmission
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - TRANSMISSION_WEB_HOME=/transmission-web-control/ #optional Specify an alternative UI options are /combustion-release/, /transmission-web-control/, and /kettu/ .
+      - USER=${TRANSMISSIONUSER} #optional
+      - PASS=${TRANSMISSIONPASS} #optional
+    volumes:
+      - ${CONFIGDIR}/transmission:/config
+      - ${PLEXDATA}/downloads:/downloads
+      - ${PLEXDATA}/downloads/watch:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp

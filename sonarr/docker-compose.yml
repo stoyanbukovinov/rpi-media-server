@@ -1,0 +1,17 @@
+---
+version: "2.1"
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - TZ=${TZ} # Specify a timezone to use
+      - PUID=${PUID} # User ID to run as
+      - PGID=${PGID} # Group ID to run as
+    volumes:
+      - ${CONFIGDIR}/sonarr:/config
+      - ${PLEXDATA}:/tv #optional
+      # - ${PLEXDATA}:/downloads #optional
+    ports:
+      - 8989:8989
+    restart: unless-stopped

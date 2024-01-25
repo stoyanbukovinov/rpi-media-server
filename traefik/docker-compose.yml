@@ -1,0 +1,45 @@
+  version: "3.7"
+  services:
+    traefik:
+      image: "traefik:latest"
+      container_name: "traefik"
+      hostname: traefik
+      domainname: alpha.${EXTERNAL_DOMAIN}
+      command: 
+          - "--providers.docker=true"
+          - "--entrypoints.web.address=:80"
+          - "--entrypoints.websecure.address=443"
+      networks:
+          - default
+          - traefik_proxy
+      command:
+        - "--log.level=DEBUG"
+        - "--api.insecure=true"
+        - "--providers.docker=true"
+        - "--providers.docker.exposedbydefault=false"
+        - "--entrypoints.web.address=:80"
+        - "--entrypoints.websecure.address=:443"
+      ports:
+        - "80:80"
+        - "8080:8080"
+        - "443:443"
+      volumes:
+        - "/var/run/docker.sock:/var/run/docker.sock:ro"
+        - "${CONFIGDIR}/traefik:/etc/traefik"
+        - "${CONFIGDIR}/traefik/shared:/shared"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.backend=traefik"
+        #- "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
+        - "traefik.http.routers.api.rule=Host(`traefik.${EXTERNAL_DOMAIN}`)"
+        - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+        - "traefik.docker.network=traefik_proxy"
+        - "traefik.http.routers.traefik.entrypoints=web"
+        - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRUSER}:${TRPASS}"
+        - "traefik.http.routers.traefik-secure.entrypoints=web-secure"
+        - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${EXTERNAL_DOMAIN}`)"
+        - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+        - "traefik.http.routers.traefik-secure.tls=true"
+        - "traefik.http.routers.traefik-secure.tls.options=default"
+        - "traefik.http.routers.traefik-secure.tls.certresolver=http"
+        - "traefik.http.routers.traefik-secure.service=api@internal"
